@@ -1,0 +1,8 @@
+[package]
+name = "tensor"
+version = "0.0.0"
+edition = "2021"
+authors = ["YdrMaster <ydrml@hotmail.com>"]
+repository = "https://github.com/YdrMaster/tensor.git"
+license = "MIT"
+readme = "README.md"
