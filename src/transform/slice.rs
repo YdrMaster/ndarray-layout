@@ -33,12 +33,11 @@ impl<const N: usize> TensorLayout<N> {
     pub fn slice_many(&self, mut args: &[SliceArg]) -> Self {
         let content = self.content();
         let mut offset = content.offset() as isize;
-        let shape = content.shape();
-        let strides = content.strides();
+        let iter = zip(content.shape(), content.strides()).enumerate();
 
         let ans = Self::with_order(self.order);
         let content = ans.content();
-        for (i, (&d, &s)) in zip(shape, strides).enumerate() {
+        for (i, (&d, &s)) in iter {
             match args {
                 [arg, tail @ ..] if arg.axis == i => {
                     let &SliceArg {

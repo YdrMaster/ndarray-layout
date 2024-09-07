@@ -27,7 +27,7 @@ impl<const N: usize> TensorLayout<N> {
         let content = self.content();
         let mut offset = content.offset() as isize;
         let shape = content.shape();
-        let strides = content.strides();
+        let iter = zip(shape, content.strides()).enumerate();
 
         let check = |&IndexArg { axis, index }| shape.get(axis).filter(|&&d| index < d).is_some();
 
@@ -40,7 +40,7 @@ impl<const N: usize> TensorLayout<N> {
         let ans = Self::with_order(self.order - args.len());
         let content = ans.content();
         let mut j = 0;
-        for (i, (&d, &s)) in zip(shape, strides).enumerate() {
+        for (i, (&d, &s)) in iter {
             match *args {
                 [IndexArg { axis, index }, ref tail @ ..] if axis == i => {
                     offset += index as isize * s;
