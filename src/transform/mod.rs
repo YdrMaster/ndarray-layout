@@ -1,4 +1,5 @@
 ﻿mod index;
+mod merge;
 mod slice;
 mod tile;
 
