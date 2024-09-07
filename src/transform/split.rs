@@ -1,5 +1,6 @@
 ﻿use crate::TensorLayout;
 
+/// 切分变换参数。
 pub struct Split<'a, const N: usize> {
     src: &'a TensorLayout<N>,
     axis: usize,

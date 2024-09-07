@@ -1,10 +1,13 @@
 ﻿use crate::TensorLayout;
 use std::iter::zip;
 
-#[derive(Debug)]
+/// 索引变换参数。
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct IndexArg {
-    axis: usize,
-    index: usize,
+    /// 索引的轴。
+    pub axis: usize,
+    /// 选择指定轴的第几个元素。
+    pub index: usize,
 }
 
 impl<const N: usize> TensorLayout<N> {

@@ -1,16 +1,23 @@
 ﻿use crate::TensorLayout;
 use std::iter::zip;
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+/// 分块变换参数。
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TileArg<'a> {
+    /// 分块的轴。
     pub axis: usize,
+    /// 分块的顺序。
     pub order: TileOrder,
+    /// 分块的大小。
     pub tiles: &'a [usize],
 }
 
+/// 分块顺序。
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum TileOrder {
+    /// 大端分块，分块后范围更大的维度在形状中更靠前的位置。
     BigEndian,
+    /// 小端分块，分块后范围更小的维度在形状中更靠前的位置。
     LittleEndian,
 }
 

@@ -1,11 +1,16 @@
 ﻿use crate::TensorLayout;
 use std::iter::zip;
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+/// 切片变换参数。
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SliceArg {
+    /// 切片的轴。
     pub axis: usize,
+    /// 切片的起始位置。
     pub start: usize,
+    /// 切片的步长。
     pub step: isize,
+    /// 切片的长度。
     pub len: usize,
 }
 

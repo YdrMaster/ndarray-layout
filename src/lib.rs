@@ -1,3 +1,6 @@
+#![doc = include_str!("../README.md")]
+#![deny(warnings, missing_docs)]
+
 mod transform;
 
 use std::{
@@ -9,6 +12,7 @@ use std::{
 
 pub use transform::{IndexArg, SliceArg, Split, TileArg, TileOrder};
 
+/// A tensor layout allow N dimensions inlined.
 pub struct TensorLayout<const N: usize = 2> {
     order: usize,
     content: Union<N>,

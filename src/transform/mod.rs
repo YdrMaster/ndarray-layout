@@ -3,6 +3,7 @@ mod merge;
 mod slice;
 mod split;
 mod tile;
+mod transpose;
 
 pub use index::IndexArg;
 pub use slice::SliceArg;
