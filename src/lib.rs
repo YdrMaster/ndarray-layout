@@ -7,7 +7,7 @@ use std::{
     slice::from_raw_parts,
 };
 
-pub use transform::{IndexArg, SliceArg, TileArg, TileOrder};
+pub use transform::{IndexArg, SliceArg, Split, TileArg, TileOrder};
 
 pub struct TensorLayout<const N: usize = 2> {
     order: usize,
