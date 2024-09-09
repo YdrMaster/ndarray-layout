@@ -40,8 +40,8 @@ impl<const N: usize> TensorLayout<N> {
             return self.clone();
         }
 
-        let ans = Self::with_order(self.order - args.len());
-        let content = ans.content();
+        let mut ans = Self::with_order(self.order - args.len());
+        let mut content = ans.content_mut();
         let mut j = 0;
         for (i, (&d, &s)) in iter {
             match *args {

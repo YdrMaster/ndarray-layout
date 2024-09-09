@@ -23,9 +23,9 @@ impl<const N: usize> TensorLayout<N> {
         let strides = content.strides();
 
         let merged = args.iter().map(|range| range.len()).sum::<usize>();
-        let ans = Self::with_order(self.order + args.len() - merged);
+        let mut ans = Self::with_order(self.order + args.len() - merged);
 
-        let content = ans.content();
+        let mut content = ans.content_mut();
         content.set_offset(self.offset());
         let mut i = 0;
         let mut push = |t, s| {

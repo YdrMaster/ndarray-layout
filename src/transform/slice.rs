@@ -40,8 +40,8 @@ impl<const N: usize> TensorLayout<N> {
         let mut offset = content.offset() as isize;
         let iter = zip(content.shape(), content.strides()).enumerate();
 
-        let ans = Self::with_order(self.order);
-        let content = ans.content();
+        let mut ans = Self::with_order(self.order);
+        let mut content = ans.content_mut();
         for (i, (&d, &s)) in iter {
             match args {
                 [arg, tail @ ..] if arg.axis == i => {

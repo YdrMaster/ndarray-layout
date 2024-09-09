@@ -87,9 +87,9 @@ impl<const N: usize> TensorLayout<N> {
             last_axis = arg.axis;
         }
 
-        let ans = Self::with_order(self.order + new_orders - args.len());
+        let mut ans = Self::with_order(self.order + new_orders - args.len());
 
-        let content = ans.content();
+        let mut content = ans.content_mut();
         content.set_offset(self.offset());
         let mut j = 0;
         let mut push = |t, s| {

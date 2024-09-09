@@ -1,21 +1,15 @@
 #![doc = include_str!("../README.md")]
 #![deny(warnings, missing_docs)]
 
-mod transform;
-
-use std::{
-    alloc::{alloc, dealloc, Layout},
-    iter::zip,
-    ptr::{copy_nonoverlapping, NonNull},
-    slice::from_raw_parts,
-};
-
-pub use transform::{IndexArg, SliceArg, Split, TileArg, TileOrder};
-
 /// A tensor layout allow N dimensions inlined.
 pub struct TensorLayout<const N: usize = 2> {
     order: usize,
     content: Union<N>,
+}
+
+union Union<const N: usize> {
+    ptr: NonNull<usize>,
+    _inlined: (usize, [usize; N], [isize; N]),
 }
 
 impl<const N: usize> Clone for TensorLayout<N> {
@@ -68,8 +62,8 @@ impl<const N: usize> TensorLayout<N> {
             })
             .all(|off| off >= 0));
 
-        let ans = Self::with_order(shape.len());
-        let content = ans.content();
+        let mut ans = Self::with_order(shape.len());
+        let mut content = ans.content_mut();
         content.set_offset(offset);
         content.copy_shape(shape);
         content.copy_strides(strides);
@@ -93,7 +87,19 @@ impl<const N: usize> TensorLayout<N> {
     pub fn strides(&self) -> &[isize] {
         self.content().strides()
     }
+}
 
+mod transform;
+pub use transform::{IndexArg, SliceArg, Split, TileArg, TileOrder};
+
+use std::{
+    alloc::{alloc, dealloc, Layout},
+    iter::zip,
+    ptr::{copy_nonoverlapping, NonNull},
+    slice::from_raw_parts,
+};
+
+impl<const N: usize> TensorLayout<N> {
     #[inline]
     fn ptr_allocated(&self) -> Option<NonNull<usize>> {
         const { assert!(N > 0) }
@@ -105,7 +111,17 @@ impl<const N: usize> TensorLayout<N> {
     }
 
     #[inline]
-    fn content(&self) -> Content {
+    fn content(&self) -> Content<false> {
+        Content {
+            ptr: self
+                .ptr_allocated()
+                .unwrap_or(unsafe { NonNull::new_unchecked(&self.content as *const _ as _) }),
+            ord: self.order,
+        }
+    }
+
+    #[inline]
+    fn content_mut(&mut self) -> Content<true> {
         Content {
             ptr: self
                 .ptr_allocated()
@@ -132,17 +148,12 @@ impl<const N: usize> TensorLayout<N> {
     }
 }
 
-union Union<const N: usize> {
-    ptr: NonNull<usize>,
-    _inlined: (usize, [usize; N], [isize; N]),
-}
-
-struct Content {
+struct Content<const MUT: bool> {
     ptr: NonNull<usize>,
     ord: usize,
 }
 
-impl Content {
+impl Content<false> {
     #[inline]
     fn as_slice(&self) -> &[usize] {
         unsafe { from_raw_parts(self.ptr.as_ptr(), 1 + self.ord * 2) }
@@ -162,32 +173,34 @@ impl Content {
     fn strides<'a>(&self) -> &'a [isize] {
         unsafe { from_raw_parts(self.ptr.add(1 + self.ord).cast().as_ptr(), self.ord) }
     }
+}
 
+impl Content<true> {
     #[inline]
-    fn set_offset(&self, val: usize) {
+    fn set_offset(&mut self, val: usize) {
         unsafe { self.ptr.write(val) }
     }
 
     #[inline]
-    fn set_shape(&self, idx: usize, val: usize) {
+    fn set_shape(&mut self, idx: usize, val: usize) {
         assert!(idx < self.ord);
         unsafe { self.ptr.add(1 + idx).write(val) }
     }
 
     #[inline]
-    fn set_stride(&self, idx: usize, val: isize) {
+    fn set_stride(&mut self, idx: usize, val: isize) {
         assert!(idx < self.ord);
         unsafe { self.ptr.add(1 + idx + self.ord).cast().write(val) }
     }
 
     #[inline]
-    fn copy_shape(&self, val: &[usize]) {
+    fn copy_shape(&mut self, val: &[usize]) {
         assert!(val.len() == self.ord);
         unsafe { copy_nonoverlapping(val.as_ptr(), self.ptr.add(1).as_ptr(), self.ord) }
     }
 
     #[inline]
-    fn copy_strides(&self, val: &[isize]) {
+    fn copy_strides(&mut self, val: &[isize]) {
         assert!(val.len() == self.ord);
         unsafe {
             copy_nonoverlapping(

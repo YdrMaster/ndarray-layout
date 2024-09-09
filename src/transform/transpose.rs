@@ -19,10 +19,10 @@ impl<const N: usize> TensorLayout<N> {
         let shape = content.shape();
         let strides = content.strides();
 
-        let ans = Self::with_order(self.order);
-        let content = ans.content();
+        let mut ans = Self::with_order(self.order);
+        let mut content = ans.content_mut();
         content.set_offset(self.offset());
-        let set = |i, j| {
+        let mut set = |i, j| {
             content.set_shape(i, shape[j]);
             content.set_stride(i, strides[j]);
         };
