@@ -8,4 +8,4 @@ mod transpose;
 pub use index::IndexArg;
 pub use slice::SliceArg;
 pub use split::Split;
-pub use tile::{TileArg, TileOrder};
+pub use tile::TileArg;

@@ -1,4 +1,4 @@
-﻿use crate::TensorLayout;
+﻿use crate::{Endian, TensorLayout};
 use std::iter::zip;
 
 /// 分块变换参数。
@@ -7,18 +7,9 @@ pub struct TileArg<'a> {
     /// 分块的轴。
     pub axis: usize,
     /// 分块的顺序。
-    pub order: TileOrder,
+    pub endian: Endian,
     /// 分块的大小。
     pub tiles: &'a [usize],
-}
-
-/// 分块顺序。
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum TileOrder {
-    /// 大端分块，分块后范围更大的维度在形状中更靠前的位置。
-    BigEndian,
-    /// 小端分块，分块后范围更小的维度在形状中更靠前的位置。
-    LittleEndian,
 }
 
 impl<const N: usize> TensorLayout<N> {
@@ -36,7 +27,7 @@ impl<const N: usize> TensorLayout<N> {
     pub fn tile_be(&self, axis: usize, tiles: &[usize]) -> Self {
         self.tile_many(&[TileArg {
             axis,
-            order: TileOrder::BigEndian,
+            endian: Endian::BigEndian,
             tiles,
         }])
     }
@@ -55,7 +46,7 @@ impl<const N: usize> TensorLayout<N> {
     pub fn tile_le(&self, axis: usize, tiles: &[usize]) -> Self {
         self.tile_many(&[TileArg {
             axis,
-            order: TileOrder::LittleEndian,
+            endian: Endian::LittleEndian,
             tiles,
         }])
     }
@@ -100,9 +91,15 @@ impl<const N: usize> TensorLayout<N> {
 
         for (i, (&d, &s)) in iter {
             match *args {
-                [TileArg { axis, order, tiles }, ref tail @ ..] if axis == i => {
+                [TileArg {
+                    axis,
+                    endian: order,
+                    tiles,
+                }, ref tail @ ..]
+                    if axis == i =>
+                {
                     match order {
-                        TileOrder::BigEndian => {
+                        Endian::BigEndian => {
                             // tile   : [a,         b    , c]
                             // strides: [s * c * b, s * c, s]
                             let mut s = s * d as isize;
@@ -111,7 +108,7 @@ impl<const N: usize> TensorLayout<N> {
                                 push(t, s);
                             }
                         }
-                        TileOrder::LittleEndian => {
+                        Endian::LittleEndian => {
                             // tile   : [a, b    , c        ]
                             // strides: [s, s * a, s * a * b]
                             let mut s = s;

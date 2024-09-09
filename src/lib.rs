@@ -36,6 +36,15 @@ impl<const N: usize> Drop for TensorLayout<N> {
     }
 }
 
+/// 元信息存储顺序。
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum Endian {
+    /// 大端序，范围更大的维度在元信息中更靠前的位置。
+    BigEndian,
+    /// 小端序，范围更小的维度在元信息中更靠前的位置。
+    LittleEndian,
+}
+
 impl<const N: usize> TensorLayout<N> {
     /// Create a new TensorLayout with the given shape, strides, and offset.
     ///
@@ -53,20 +62,46 @@ impl<const N: usize> TensorLayout<N> {
             strides.len(),
             "shape and strides must have the same length"
         );
-        assert!(zip(shape, strides)
-            .scan(offset as isize, |offset, (&d, &s)| {
-                if s < 0 {
-                    *offset += (d - 1) as isize * s;
-                }
-                Some(*offset)
-            })
-            .all(|off| off >= 0));
+        assert!(
+            zip(shape, strides)
+                .filter(|(_, &s)| s < 0)
+                .fold(offset as isize, |offset, (&d, &s)| {
+                    offset + (d - 1) as isize * s
+                })
+                >= 0
+        );
 
         let mut ans = Self::with_order(shape.len());
         let mut content = ans.content_mut();
         content.set_offset(offset);
         content.copy_shape(shape);
         content.copy_strides(strides);
+        ans
+    }
+
+    /// Create a new contiguous TensorLayout with the given shape.
+    ///
+    /// ```rust
+    /// # use tensor::{Endian, TensorLayout};
+    /// let layout = TensorLayout::<4>::new_contiguous(&[2, 3, 4], Endian::LittleEndian, 4);
+    /// assert_eq!(layout.offset(), 0);
+    /// assert_eq!(layout.shape(), &[2, 3, 4]);
+    /// assert_eq!(layout.strides(), &[4, 8, 24]);
+    /// ```
+    pub fn new_contiguous(shape: &[usize], endian: Endian, element_size: usize) -> Self {
+        let mut ans = Self::with_order(shape.len());
+        let mut content = ans.content_mut();
+        content.set_offset(0);
+        content.copy_shape(shape);
+        let mut mul = element_size as isize;
+        let push = |i| {
+            content.set_stride(i, mul);
+            mul *= shape[i] as isize;
+        };
+        match endian {
+            Endian::BigEndian => (0..shape.len()).rev().for_each(push),
+            Endian::LittleEndian => (0..shape.len()).for_each(push),
+        }
         ans
     }
 
@@ -90,7 +125,7 @@ impl<const N: usize> TensorLayout<N> {
 }
 
 mod transform;
-pub use transform::{IndexArg, SliceArg, Split, TileArg, TileOrder};
+pub use transform::{IndexArg, SliceArg, Split, TileArg};
 
 use std::{
     alloc::{alloc, dealloc, Layout},
