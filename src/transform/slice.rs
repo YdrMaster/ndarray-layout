@@ -1,4 +1,4 @@
-﻿use crate::TensorLayout;
+﻿use crate::ArrayLayout;
 use std::iter::zip;
 
 /// 切片变换参数。
@@ -14,13 +14,13 @@ pub struct SliceArg {
     pub len: usize,
 }
 
-impl<const N: usize> TensorLayout<N> {
+impl<const N: usize> ArrayLayout<N> {
     /// 切片变换是裁剪张量指定阶上一组连续数据的变换。
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
+    /// # use ndarray_layout::ArrayLayout;
     /// // axis = 1, start = 1, step = -1, len = 2
-    /// let layout = TensorLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0).slice(1, 2, -1, 2);
+    /// let layout = ArrayLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0).slice(1, 2, -1, 2);
     /// assert_eq!(layout.shape(), &[2, 2, 4]);
     /// assert_eq!(layout.strides(), &[12, -4, 1]);
     /// assert_eq!(layout.offset(), 8);
@@ -40,7 +40,7 @@ impl<const N: usize> TensorLayout<N> {
         let mut offset = content.offset() as isize;
         let iter = zip(content.shape(), content.strides()).enumerate();
 
-        let mut ans = Self::with_order(self.order);
+        let mut ans = Self::with_ndim(self.ndim);
         let mut content = ans.content_mut();
         for (i, (&d, &s)) in iter {
             match args {
@@ -74,11 +74,11 @@ impl<const N: usize> TensorLayout<N> {
 
                     if let [next, ..] = tail {
                         assert!(
-                            axis < next.axis && next.axis < self.order,
-                            "next.axis = {} ~in ({}, {})",
+                            axis < next.axis && next.axis < self.ndim,
+                            "next.axis = {} !in ({}, {})",
                             next.axis,
                             axis,
-                            self.order,
+                            self.ndim,
                         );
                     }
                     args = tail;

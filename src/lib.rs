@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
 #![deny(warnings, missing_docs)]
 
-/// A tensor layout allow N dimensions inlined.
-pub struct TensorLayout<const N: usize = 2> {
-    order: usize,
+/// An array layout allow N dimensions inlined.
+pub struct ArrayLayout<const N: usize = 2> {
+    ndim: usize,
     content: Union<N>,
 }
 
@@ -12,26 +12,26 @@ union Union<const N: usize> {
     _inlined: (usize, [usize; N], [isize; N]),
 }
 
-impl<const N: usize> Clone for TensorLayout<N> {
+impl<const N: usize> Clone for ArrayLayout<N> {
     #[inline]
     fn clone(&self) -> Self {
         Self::new(self.shape(), self.strides(), self.offset())
     }
 }
 
-impl<const N: usize> PartialEq for TensorLayout<N> {
+impl<const N: usize> PartialEq for ArrayLayout<N> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.order == other.order && self.content().as_slice() == other.content().as_slice()
+        self.ndim == other.ndim && self.content().as_slice() == other.content().as_slice()
     }
 }
 
-impl<const N: usize> Eq for TensorLayout<N> {}
+impl<const N: usize> Eq for ArrayLayout<N> {}
 
-impl<const N: usize> Drop for TensorLayout<N> {
+impl<const N: usize> Drop for ArrayLayout<N> {
     fn drop(&mut self) {
         if let Some(ptr) = self.ptr_allocated() {
-            unsafe { dealloc(ptr.cast().as_ptr(), layout(self.order)) }
+            unsafe { dealloc(ptr.cast().as_ptr(), layout(self.ndim)) }
         }
     }
 }
@@ -45,12 +45,12 @@ pub enum Endian {
     LittleEndian,
 }
 
-impl<const N: usize> TensorLayout<N> {
-    /// Create a new TensorLayout with the given shape, strides, and offset.
+impl<const N: usize> ArrayLayout<N> {
+    /// Creates a new Layout with the given shape, strides, and offset.
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
-    /// let layout = TensorLayout::<4>::new(&[2, 3, 4], &[12, -4, 1], 20);
+    /// # use ndarray_layout::ArrayLayout;
+    /// let layout = ArrayLayout::<4>::new(&[2, 3, 4], &[12, -4, 1], 20);
     /// assert_eq!(layout.offset(), 20);
     /// assert_eq!(layout.shape(), &[2, 3, 4]);
     /// assert_eq!(layout.strides(), &[12, -4, 1]);
@@ -71,7 +71,7 @@ impl<const N: usize> TensorLayout<N> {
                 >= 0
         );
 
-        let mut ans = Self::with_order(shape.len());
+        let mut ans = Self::with_ndim(shape.len());
         let mut content = ans.content_mut();
         content.set_offset(offset);
         content.copy_shape(shape);
@@ -79,17 +79,17 @@ impl<const N: usize> TensorLayout<N> {
         ans
     }
 
-    /// Create a new contiguous TensorLayout with the given shape.
+    /// Creates a new contiguous Layout with the given shape.
     ///
     /// ```rust
-    /// # use tensor::{Endian, TensorLayout};
-    /// let layout = TensorLayout::<4>::new_contiguous(&[2, 3, 4], Endian::LittleEndian, 4);
+    /// # use ndarray_layout::{Endian, ArrayLayout};
+    /// let layout = ArrayLayout::<4>::new_contiguous(&[2, 3, 4], Endian::LittleEndian, 4);
     /// assert_eq!(layout.offset(), 0);
     /// assert_eq!(layout.shape(), &[2, 3, 4]);
     /// assert_eq!(layout.strides(), &[4, 8, 24]);
     /// ```
     pub fn new_contiguous(shape: &[usize], endian: Endian, element_size: usize) -> Self {
-        let mut ans = Self::with_order(shape.len());
+        let mut ans = Self::with_ndim(shape.len());
         let mut content = ans.content_mut();
         content.set_offset(0);
         content.copy_shape(shape);
@@ -105,19 +105,19 @@ impl<const N: usize> TensorLayout<N> {
         ans
     }
 
-    /// Get offset of tensor.
+    /// Gets offset.
     #[inline]
     pub fn offset(&self) -> usize {
         self.content().offset()
     }
 
-    /// Get shape of tensor.
+    /// Gets shape.
     #[inline]
     pub fn shape(&self) -> &[usize] {
         self.content().shape()
     }
 
-    /// Get strides of tensor.
+    /// Gets strides.
     #[inline]
     pub fn strides(&self) -> &[isize] {
         self.content().strides()
@@ -134,11 +134,11 @@ use std::{
     slice::from_raw_parts,
 };
 
-impl<const N: usize> TensorLayout<N> {
+impl<const N: usize> ArrayLayout<N> {
     #[inline]
     fn ptr_allocated(&self) -> Option<NonNull<usize>> {
         const { assert!(N > 0) }
-        if self.order > N {
+        if self.ndim > N {
             Some(unsafe { self.content.ptr })
         } else {
             None
@@ -151,7 +151,7 @@ impl<const N: usize> TensorLayout<N> {
             ptr: self
                 .ptr_allocated()
                 .unwrap_or(unsafe { NonNull::new_unchecked(&self.content as *const _ as _) }),
-            ord: self.order,
+            ord: self.ndim,
         }
     }
 
@@ -161,22 +161,22 @@ impl<const N: usize> TensorLayout<N> {
             ptr: self
                 .ptr_allocated()
                 .unwrap_or(unsafe { NonNull::new_unchecked(&self.content as *const _ as _) }),
-            ord: self.order,
+            ord: self.ndim,
         }
     }
 
-    /// Create a new TensorLayout with the given order.
+    /// Create a new ArrayLayout with the given dimensions.
     #[inline]
-    fn with_order(order: usize) -> Self {
+    fn with_ndim(ndim: usize) -> Self {
         Self {
-            order,
-            content: if order <= N {
+            ndim,
+            content: if ndim <= N {
                 Union {
                     _inlined: (0, [0; N], [0; N]),
                 }
             } else {
                 Union {
-                    ptr: unsafe { NonNull::new_unchecked(alloc(layout(order)).cast()) },
+                    ptr: unsafe { NonNull::new_unchecked(alloc(layout(ndim)).cast()) },
                 }
             },
         }
@@ -248,6 +248,6 @@ impl Content<true> {
 }
 
 #[inline]
-fn layout(order: usize) -> Layout {
-    Layout::array::<usize>(1 + order * 2).unwrap()
+fn layout(ndim: usize) -> Layout {
+    Layout::array::<usize>(1 + ndim * 2).unwrap()
 }

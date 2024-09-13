@@ -1,19 +1,19 @@
-﻿use crate::TensorLayout;
+﻿use crate::ArrayLayout;
 
 /// 切分变换参数。
 pub struct Split<'a, const N: usize> {
-    src: &'a TensorLayout<N>,
+    src: &'a ArrayLayout<N>,
     axis: usize,
     start: usize,
     parts: &'a [usize],
 }
 
-impl<const N: usize> TensorLayout<N> {
+impl<const N: usize> ArrayLayout<N> {
     /// 切分变换讲单个张量沿某个维度切分成多个张量，因此可以支持不均匀的切分。
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
-    /// let layout = TensorLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0);
+    /// # use ndarray_layout::ArrayLayout;
+    /// let layout = ArrayLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0);
     /// let mut splits = layout.split(2, &[1, 3]);
     ///
     /// let layout = splits.next().unwrap();
@@ -39,7 +39,7 @@ impl<const N: usize> TensorLayout<N> {
 }
 
 impl<const N: usize> Iterator for Split<'_, N> {
-    type Item = TensorLayout<N>;
+    type Item = ArrayLayout<N>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {

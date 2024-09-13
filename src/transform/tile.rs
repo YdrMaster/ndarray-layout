@@ -1,4 +1,4 @@
-﻿use crate::{Endian, TensorLayout};
+﻿use crate::{ArrayLayout, Endian};
 use std::iter::zip;
 
 /// 分块变换参数。
@@ -12,13 +12,13 @@ pub struct TileArg<'a> {
     pub tiles: &'a [usize],
 }
 
-impl<const N: usize> TensorLayout<N> {
+impl<const N: usize> ArrayLayout<N> {
     /// 分块变换是将单个维度划分为多个分块的变换。
     /// 大端分块使得分块后范围更大的维度在形状中更靠前的位置。
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
-    /// let layout = TensorLayout::<3>::new(&[2, 3, 6], &[18, 6, 1], 0).tile_be(2, &[2, 3]);
+    /// # use ndarray_layout::ArrayLayout;
+    /// let layout = ArrayLayout::<3>::new(&[2, 3, 6], &[18, 6, 1], 0).tile_be(2, &[2, 3]);
     /// assert_eq!(layout.shape(), &[2, 3, 2, 3]);
     /// assert_eq!(layout.strides(), &[18, 6, 3, 1]);
     /// assert_eq!(layout.offset(), 0);
@@ -36,8 +36,8 @@ impl<const N: usize> TensorLayout<N> {
     /// 小端分块使得分块后范围更小的维度在形状中更靠前的位置。
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
-    /// let layout = TensorLayout::<3>::new(&[2, 3, 6], &[18, 6, 1], 0).tile_le(2, &[2, 3]);
+    /// # use ndarray_layout::ArrayLayout;
+    /// let layout = ArrayLayout::<3>::new(&[2, 3, 6], &[18, 6, 1], 0).tile_le(2, &[2, 3]);
     /// assert_eq!(layout.shape(), &[2, 3, 2, 3]);
     /// assert_eq!(layout.strides(), &[18, 6, 1, 2]);
     /// assert_eq!(layout.offset(), 0);
@@ -64,7 +64,7 @@ impl<const N: usize> TensorLayout<N> {
                 .is_some()
         };
 
-        let (mut new_orders, mut last_axis) = match args {
+        let (mut new, mut last_axis) = match args {
             [first, ..] => {
                 assert!(check(first));
                 (first.tiles.len(), first.axis)
@@ -74,11 +74,11 @@ impl<const N: usize> TensorLayout<N> {
         for arg in &args[1..] {
             assert!(check(arg));
             assert!(arg.axis > last_axis);
-            new_orders += arg.tiles.len();
+            new += arg.tiles.len();
             last_axis = arg.axis;
         }
 
-        let mut ans = Self::with_order(self.order + new_orders - args.len());
+        let mut ans = Self::with_ndim(self.ndim + new - args.len());
 
         let mut content = ans.content_mut();
         content.set_offset(self.offset());
@@ -93,12 +93,12 @@ impl<const N: usize> TensorLayout<N> {
             match *args {
                 [TileArg {
                     axis,
-                    endian: order,
+                    endian,
                     tiles,
                 }, ref tail @ ..]
                     if axis == i =>
                 {
-                    match order {
+                    match endian {
                         Endian::BigEndian => {
                             // tile   : [a,         b    , c]
                             // strides: [s * c * b, s * c, s]

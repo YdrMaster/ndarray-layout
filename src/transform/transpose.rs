@@ -1,12 +1,12 @@
-﻿use crate::TensorLayout;
+﻿use crate::ArrayLayout;
 use std::{collections::BTreeSet, iter::zip};
 
-impl<const N: usize> TensorLayout<N> {
+impl<const N: usize> ArrayLayout<N> {
     /// 转置变换允许调换张量的维度顺序，但不改变元素的存储顺序。
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
-    /// let layout = TensorLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0).transpose(&[1, 0]);
+    /// # use ndarray_layout::ArrayLayout;
+    /// let layout = ArrayLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0).transpose(&[1, 0]);
     /// assert_eq!(layout.shape(), &[3, 2, 4]);
     /// assert_eq!(layout.strides(), &[4, 12, 1]);
     /// assert_eq!(layout.offset(), 0);
@@ -19,7 +19,7 @@ impl<const N: usize> TensorLayout<N> {
         let shape = content.shape();
         let strides = content.strides();
 
-        let mut ans = Self::with_order(self.order);
+        let mut ans = Self::with_ndim(self.ndim);
         let mut content = ans.content_mut();
         content.set_offset(self.offset());
         let mut set = |i, j| {

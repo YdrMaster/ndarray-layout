@@ -1,12 +1,12 @@
-﻿use crate::TensorLayout;
+﻿use crate::ArrayLayout;
 use std::{iter::zip, ops::Range};
 
-impl<const N: usize> TensorLayout<N> {
+impl<const N: usize> ArrayLayout<N> {
     /// 合并变换是将多个连续维度划分合并的变换。
     ///
     /// ```rust
-    /// # use tensor::TensorLayout;
-    /// let layout = TensorLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0).merge(0..3);
+    /// # use ndarray_layout::ArrayLayout;
+    /// let layout = ArrayLayout::<3>::new(&[2, 3, 4], &[12, 4, 1], 0).merge(0..3);
     /// assert_eq!(layout.shape(), &[24]);
     /// assert_eq!(layout.strides(), &[1]);
     /// assert_eq!(layout.offset(), 0);
@@ -23,7 +23,7 @@ impl<const N: usize> TensorLayout<N> {
         let strides = content.strides();
 
         let merged = args.iter().map(|range| range.len()).sum::<usize>();
-        let mut ans = Self::with_order(self.order + args.len() - merged);
+        let mut ans = Self::with_ndim(self.ndim + args.len() - merged);
 
         let mut content = ans.content_mut();
         content.set_offset(self.offset());
