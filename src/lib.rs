@@ -107,6 +107,12 @@ impl<const N: usize> ArrayLayout<N> {
 
     /// Gets offset.
     #[inline]
+    pub const fn ndim(&self) -> usize {
+        self.ndim
+    }
+
+    /// Gets offset.
+    #[inline]
     pub fn offset(&self) -> usize {
         self.content().offset()
     }
@@ -151,7 +157,7 @@ impl<const N: usize> ArrayLayout<N> {
             ptr: self
                 .ptr_allocated()
                 .unwrap_or(unsafe { NonNull::new_unchecked(&self.content as *const _ as _) }),
-            ord: self.ndim,
+            ndim: self.ndim,
         }
     }
 
@@ -161,7 +167,7 @@ impl<const N: usize> ArrayLayout<N> {
             ptr: self
                 .ptr_allocated()
                 .unwrap_or(unsafe { NonNull::new_unchecked(&self.content as *const _ as _) }),
-            ord: self.ndim,
+            ndim: self.ndim,
         }
     }
 
@@ -185,13 +191,13 @@ impl<const N: usize> ArrayLayout<N> {
 
 struct Content<const MUT: bool> {
     ptr: NonNull<usize>,
-    ord: usize,
+    ndim: usize,
 }
 
 impl Content<false> {
     #[inline]
     fn as_slice(&self) -> &[usize] {
-        unsafe { from_raw_parts(self.ptr.as_ptr(), 1 + self.ord * 2) }
+        unsafe { from_raw_parts(self.ptr.as_ptr(), 1 + self.ndim * 2) }
     }
 
     #[inline]
@@ -201,12 +207,12 @@ impl Content<false> {
 
     #[inline]
     fn shape<'a>(&self) -> &'a [usize] {
-        unsafe { from_raw_parts(self.ptr.add(1).as_ptr(), self.ord) }
+        unsafe { from_raw_parts(self.ptr.add(1).as_ptr(), self.ndim) }
     }
 
     #[inline]
     fn strides<'a>(&self) -> &'a [isize] {
-        unsafe { from_raw_parts(self.ptr.add(1 + self.ord).cast().as_ptr(), self.ord) }
+        unsafe { from_raw_parts(self.ptr.add(1 + self.ndim).cast().as_ptr(), self.ndim) }
     }
 }
 
@@ -218,30 +224,30 @@ impl Content<true> {
 
     #[inline]
     fn set_shape(&mut self, idx: usize, val: usize) {
-        assert!(idx < self.ord);
+        assert!(idx < self.ndim);
         unsafe { self.ptr.add(1 + idx).write(val) }
     }
 
     #[inline]
     fn set_stride(&mut self, idx: usize, val: isize) {
-        assert!(idx < self.ord);
-        unsafe { self.ptr.add(1 + idx + self.ord).cast().write(val) }
+        assert!(idx < self.ndim);
+        unsafe { self.ptr.add(1 + idx + self.ndim).cast().write(val) }
     }
 
     #[inline]
     fn copy_shape(&mut self, val: &[usize]) {
-        assert!(val.len() == self.ord);
-        unsafe { copy_nonoverlapping(val.as_ptr(), self.ptr.add(1).as_ptr(), self.ord) }
+        assert!(val.len() == self.ndim);
+        unsafe { copy_nonoverlapping(val.as_ptr(), self.ptr.add(1).as_ptr(), self.ndim) }
     }
 
     #[inline]
     fn copy_strides(&mut self, val: &[isize]) {
-        assert!(val.len() == self.ord);
+        assert!(val.len() == self.ndim);
         unsafe {
             copy_nonoverlapping(
                 val.as_ptr(),
-                self.ptr.add(1 + self.ord).cast().as_ptr(),
-                self.ord,
+                self.ptr.add(1 + self.ndim).cast().as_ptr(),
+                self.ndim,
             )
         }
     }
