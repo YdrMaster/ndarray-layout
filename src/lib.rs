@@ -9,7 +9,7 @@ pub struct ArrayLayout<const N: usize = 2> {
 
 union Union<const N: usize> {
     ptr: NonNull<usize>,
-    _inlined: (usize, [usize; N], [isize; N]),
+    _inlined: (isize, [usize; N], [isize; N]),
 }
 
 impl<const N: usize> Clone for ArrayLayout<N> {
@@ -55,20 +55,12 @@ impl<const N: usize> ArrayLayout<N> {
     /// assert_eq!(layout.shape(), &[2, 3, 4]);
     /// assert_eq!(layout.strides(), &[12, -4, 1]);
     /// ```
-    pub fn new(shape: &[usize], strides: &[isize], offset: usize) -> Self {
+    pub fn new(shape: &[usize], strides: &[isize], offset: isize) -> Self {
         // check
         assert_eq!(
             shape.len(),
             strides.len(),
             "shape and strides must have the same length"
-        );
-        assert!(
-            zip(shape, strides)
-                .filter(|(_, &s)| s < 0)
-                .fold(offset as isize, |offset, (&d, &s)| {
-                    offset + (d - 1) as isize * s
-                })
-                >= 0
         );
 
         let mut ans = Self::with_ndim(shape.len());
@@ -113,7 +105,7 @@ impl<const N: usize> ArrayLayout<N> {
 
     /// Gets offset.
     #[inline]
-    pub fn offset(&self) -> usize {
+    pub fn offset(&self) -> isize {
         self.content().offset()
     }
 
@@ -128,6 +120,23 @@ impl<const N: usize> ArrayLayout<N> {
     pub fn strides(&self) -> &[isize] {
         self.content().strides()
     }
+
+    /// Calculate the range of data in bytes to determine the location of the memory area that the tensor needs to access.
+    pub fn data_range(&self) -> RangeInclusive<isize> {
+        let content = self.content();
+        let mut start = content.offset();
+        let mut end = content.offset();
+        for (&d, s) in zip(content.shape(), content.strides()) {
+            use std::cmp::Ordering::{Equal, Greater, Less};
+            let i = d as isize - 1;
+            match s.cmp(&0) {
+                Equal => {}
+                Less => start += s * i,
+                Greater => end += s * i,
+            }
+        }
+        start..=end
+    }
 }
 
 mod transform;
@@ -135,7 +144,9 @@ pub use transform::{IndexArg, SliceArg, Split, TileArg};
 
 use std::{
     alloc::{alloc, dealloc, Layout},
+    isize,
     iter::zip,
+    ops::RangeInclusive,
     ptr::{copy_nonoverlapping, NonNull},
     slice::from_raw_parts,
 };
@@ -201,8 +212,8 @@ impl Content<false> {
     }
 
     #[inline]
-    fn offset(&self) -> usize {
-        unsafe { self.ptr.read() }
+    fn offset(&self) -> isize {
+        unsafe { self.ptr.cast().read() }
     }
 
     #[inline]
@@ -218,8 +229,8 @@ impl Content<false> {
 
 impl Content<true> {
     #[inline]
-    fn set_offset(&mut self, val: usize) {
-        unsafe { self.ptr.write(val) }
+    fn set_offset(&mut self, val: isize) {
+        unsafe { self.ptr.cast().write(val) }
     }
 
     #[inline]

@@ -37,7 +37,7 @@ impl<const N: usize> ArrayLayout<N> {
     /// 一次对多个阶进行切片变换。
     pub fn slice_many(&self, mut args: &[SliceArg]) -> Self {
         let content = self.content();
-        let mut offset = content.offset() as isize;
+        let mut offset = content.offset();
         let iter = zip(content.shape(), content.strides()).enumerate();
 
         let mut ans = Self::with_ndim(self.ndim);

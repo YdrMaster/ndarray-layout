@@ -28,7 +28,7 @@ impl<const N: usize> ArrayLayout<N> {
     /// 一次对多个阶进行索引变换。
     pub fn index_many(&self, mut args: &[IndexArg]) -> Self {
         let content = self.content();
-        let mut offset = content.offset() as isize;
+        let mut offset = content.offset();
         let shape = content.shape();
         let iter = zip(shape, content.strides()).enumerate();
 
