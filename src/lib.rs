@@ -140,7 +140,7 @@ impl<const N: usize> ArrayLayout<N> {
 }
 
 mod transform;
-pub use transform::{IndexArg, SliceArg, Split, TileArg};
+pub use transform::{BroadcastArg, IndexArg, SliceArg, Split, TileArg};
 
 use std::{
     alloc::{alloc, dealloc, Layout},
@@ -205,7 +205,7 @@ struct Content<const MUT: bool> {
     ndim: usize,
 }
 
-impl Content<false> {
+impl<const MUT: bool> Content<MUT> {
     #[inline]
     fn as_slice(&self) -> &[usize] {
         unsafe { from_raw_parts(self.ptr.as_ptr(), 1 + self.ndim * 2) }
