@@ -144,7 +144,6 @@ pub use transform::{BroadcastArg, IndexArg, SliceArg, Split, TileArg};
 
 use std::{
     alloc::{alloc, dealloc, Layout},
-    isize,
     iter::zip,
     ops::RangeInclusive,
     ptr::{copy_nonoverlapping, NonNull},

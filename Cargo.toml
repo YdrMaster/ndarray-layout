@@ -1,8 +1,12 @@
 [package]
 name = "ndarray-layout"
+description = "This crate provides definitions and transformations for multi-dimensional array data layouts."
 version = "0.0.0"
 edition = "2021"
 authors = ["YdrMaster <ydrml@hotmail.com>"]
 repository = "https://github.com/YdrMaster/ndarray-layout.git"
+documentation = "https://docs.rs/ndarray-layout"
 license = "MIT"
 readme = "README.md"
+keywords = ["ndarray", "layout", "transformation"]
+categories = ["data-structures", "algorithms", "science"]

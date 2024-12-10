@@ -27,7 +27,7 @@ impl<const N: usize> ArrayLayout<N> {
     /// assert_eq!(layout.offset(), 1);
     /// ```
     #[inline]
-    pub fn split<'a>(&'a self, axis: usize, parts: &'a [usize]) -> Split<N> {
+    pub fn split<'a>(&'a self, axis: usize, parts: &'a [usize]) -> Split<'a, N> {
         assert_eq!(self.shape()[axis], parts.iter().sum());
         Split {
             src: self,
